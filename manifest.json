@@ -1,0 +1,39 @@
+{
+  "name": "feeling",
+  "display_name": "Bot情绪与情感系统",
+  "version": "1.0.0",
+  "description": "基于时间与对话轮数混合衰减算法的Bot情感管理系统，支持LLM主动设置情绪并持续在User Prompt末尾注入提示。",
+  "author": "Zoo",
+  "license": "AGPL-v3.0",
+  "categories": [
+    "tool"
+  ],
+  "tags": [
+    "feeling",
+    "prompt",
+    "injector"
+  ],
+  "dependencies": {
+    "plugins": [],
+    "components": []
+  },
+  "include": [
+    {
+      "component_type": "tool",
+      "component_name": "set_bot_feeling",
+      "dependencies": []
+    },
+    {
+      "component_type": "event_handler",
+      "component_name": "feeling_prompt_injector",
+      "dependencies": []
+    },
+    {
+      "component_type": "event_handler",
+      "component_name": "feeling_turn_counter",
+      "dependencies": []
+    }
+  ],
+  "entry_point": "plugin.py",
+  "min_core_version": "1.0.0"
+}
