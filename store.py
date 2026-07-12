@@ -44,7 +44,7 @@ class FeelingStore:
         """从隔离的 JSON 存储中直接加载未衰减的原始状态。"""
         try:
             data = await storage_api.load_json(self.namespace, stream_id)
-            if data:
+            if data and isinstance(data, dict):
                 return FeelingState(
                     mood=str(data.get("mood", "")),
                     intensity=float(data.get("intensity", 1.0)),
@@ -54,6 +54,12 @@ class FeelingStore:
                 )
         except Exception as exc:
             logger.error(f"加载 stream_id={stream_id} 的情感状态失败: {exc}")
+            # 如果加载失败（比如 JSON 损坏），清除损坏的文件以恢复默认状态
+            try:
+                await storage_api.delete_json(self.namespace, stream_id)
+                logger.info(f"已清理 stream_id={stream_id} 损坏的情感状态文件")
+            except Exception as e:
+                logger.error(f"清理损坏的情感状态文件失败: {e}")
         return None
 
     async def set_state(
@@ -109,7 +115,14 @@ class FeelingStore:
             return None
 
         current_time = now if now is not None else time.time()
-        elapsed_seconds = max(0.0, current_time - state["updated_at"])
+        
+        # 兼容旧版本数据或异常状态（无 updated_at 或格式错误）
+        updated_at = state.get("updated_at")
+        if updated_at is None or not isinstance(updated_at, (int, float)):
+            updated_at = current_time
+            state["updated_at"] = updated_at
+            
+        elapsed_seconds = max(0.0, current_time - updated_at)
 
         # 1. 时间指数衰减: intensity * (0.5 ^ (elapsed / half_life))
         if half_life_seconds <= 0:
@@ -122,11 +135,11 @@ class FeelingStore:
         final_intensity = time_decayed_intensity * (decay_factor ** state["turn_count"])
 
         return FeelingState(
-            mood=state["mood"],
+            mood=state.get("mood", ""),
             intensity=round(final_intensity, 3),
-            reason=state["reason"],
-            updated_at=state["updated_at"],
-            turn_count=state["turn_count"],
+            reason=state.get("reason", ""),
+            updated_at=updated_at,
+            turn_count=state.get("turn_count", 0),
         )
 
     async def clear_state(self, stream_id: str) -> None:

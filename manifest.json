@@ -1,7 +1,7 @@
 {
   "name": "feeling",
   "display_name": "Bot情绪与情感系统",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "基于时间与对话轮数混合衰减算法的Bot情感管理系统，支持LLM主动设置情绪并持续在User Prompt末尾注入提示。",
   "author": "言柒",
   "license": "AGPL-v3.0",

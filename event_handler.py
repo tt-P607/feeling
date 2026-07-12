@@ -11,8 +11,10 @@ from typing import Any
 
 from src.app.plugin_system.api.event_api import EventDecision
 from src.app.plugin_system.api.log_api import get_logger
+from src.app.plugin_system.api.prompt_api import add_stream_reminder
 from src.app.plugin_system.base import BaseEventHandler
 from src.core.models.message import Message
+from src.core.prompt import SystemReminderInsertType
 
 from .config import FeelingConfig
 from .store import FeelingStore
@@ -75,7 +77,6 @@ class FeelingPromptInjector(BaseEventHandler):
                 intensity=decayed["intensity"],
                 reason=decayed["reason"],
             )
-            # 在日志中调试输出
             if config.plugin.debug_log:
                 logger.info(
                     f"[feeling_prompt_injector] 注入活跃情绪到 stream_id={stream_id[:8]}...: "
@@ -87,9 +88,14 @@ class FeelingPromptInjector(BaseEventHandler):
             if config.plugin.debug_log:
                 logger.info(f"[feeling_prompt_injector] 注入平和状态到 stream_id={stream_id[:8]}...")
 
-        # 追加注入至 values["extra"] (即 User Prompt 最后的 extra 字段)
-        existing_extra = str(values.get("extra", ""))
-        values["extra"] = (existing_extra + injected_prompt) if existing_extra else injected_prompt
+        # 写入流私有 actor bucket，由 chatter 通过 with_reminder="actor" 自动拾取
+        add_stream_reminder(
+            stream_id=stream_id,
+            bucket="actor",
+            name="feeling_emotion",
+            content=injected_prompt,
+            insert_type=SystemReminderInsertType.DYNAMIC,
+        )
 
         return EventDecision.SUCCESS, params
 
